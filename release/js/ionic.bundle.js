@@ -9,7 +9,7 @@
  * Copyright 2014 Drifty Co.
  * http://drifty.com/
  *
- * Ionic, v1.1.0
+ * Ionic, v1.1.1
  * A powerful HTML5 mobile app framework.
  * http://ionicframework.com/
  *
@@ -25,7 +25,7 @@
 // build processes may have already created an ionic obj
 window.ionic = window.ionic || {};
 window.ionic.views = {};
-window.ionic.version = '1.1.0';
+window.ionic.version = '1.1.1';
 
 (function (ionic) {
 
@@ -723,7 +723,7 @@ window.ionic.version = '1.1.0';
     // whatever lookup was done to find this element failed to find it
     // so we can't listen for events on it.
     if(element === null) {
-      void 0;
+      console.error('Null element passed to gesture (element does not exist). Not listening for gesture');
       return this;
     }
 
@@ -2327,7 +2327,12 @@ window.ionic.version = '1.1.0';
       }
     },
 
-    // Check if the platform is the one detected by cordova
+    /**
+     * @ngdoc method
+     * @name ionic.Platform#is
+     * @param {string} Platform name.
+     * @returns {boolean} Whether the platform name provided is detected.
+     */
     is: function(type) {
       type = type.toLowerCase();
       // check if it has an array of platforms
@@ -2892,7 +2897,7 @@ function tapMouseDown(e) {
   if (e.isIonicTap || tapIgnoreEvent(e)) return null;
 
   if (tapEnabledTouchEvents) {
-    void 0;
+    console.log('mousedown', 'stop event');
     e.stopPropagation();
 
     if ((!ionic.tap.isTextInput(e.target) || tapLastTouchTarget !== e.target) && !(/^(select|option)$/i).test(e.target.tagName)) {
@@ -3056,7 +3061,7 @@ function tapHandleFocus(ele) {
 function tapFocusOutActive() {
   var ele = tapActiveElement();
   if (ele && ((/^(input|textarea|select)$/i).test(ele.tagName) || ele.isContentEditable)) {
-    void 0;
+    console.log('tapFocusOutActive', ele.tagName);
     ele.blur();
   }
   tapActiveElement(null);
@@ -3077,7 +3082,7 @@ function tapFocusIn(e) {
     // 2) There is an active element which is a text input
     // 3) A text input was just set to be focused on by a touch event
     // 4) A new focus has been set, however the target isn't the one the touch event wanted
-    void 0;
+    console.log('focusin', 'tapTouchFocusedInput');
     tapTouchFocusedInput.focus();
     tapTouchFocusedInput = null;
   }
@@ -6873,7 +6878,7 @@ ionic.scroll = {
 (function(ionic) {
   var NOOP = function() {};
   var depreciated = function(name) {
-    void 0;
+    console.error('Method not available in native scrolling: ' + name);
   };
   ionic.views.ScrollNative = ionic.views.View.inherit({
 
@@ -7340,6 +7345,8 @@ ionic.scroll = {
   var ITEM_CONTENT_CLASS = 'item-content';
   var ITEM_SLIDING_CLASS = 'item-sliding';
   var ITEM_OPTIONS_CLASS = 'item-options';
+  //[NEW] add this var to the others in the function
+  var ITEM_OPTIONS_CLASS_RIGHT = 'item-options-left';
   var ITEM_PLACEHOLDER_CLASS = 'item-placeholder';
   var ITEM_REORDERING_CLASS = 'item-reordering';
   var ITEM_REORDER_BTN_CLASS = 'item-reorder';
@@ -7354,7 +7361,7 @@ ionic.scroll = {
     }
   };
 
-  var SlideDrag = function(opts) {
+  var SlideDrag = function (opts) {
     this.dragThresholdX = opts.dragThresholdX || 10;
     this.el = opts.el;
     this.item = opts.item;
@@ -7363,10 +7370,10 @@ ionic.scroll = {
 
   SlideDrag.prototype = new DragOp();
 
-  SlideDrag.prototype.start = function(e) {
-    var content, buttons, offsetX, buttonsWidth;
+  SlideDrag.prototype.start = function (e) {
+    var content, buttonsLeft, buttonsRight, offsetX, buttonsLeftWidth, buttonsRightWidth;
 
-    if (!this.canSwipe()) {
+    if (!this.canSwipe().isSwipeable) {
       return;
     }
 
@@ -7390,17 +7397,33 @@ ionic.scroll = {
     offsetX = parseFloat(content.style[ionic.CSS.TRANSFORM].replace('translate3d(', '').split(',')[0]) || 0;
 
     // Grab the buttons
-    buttons = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS);
-    if (!buttons) {
+    buttonsLeft = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS);
+    if (!buttonsLeft) {
       return;
     }
-    buttons.classList.remove('invisible');
 
-    buttonsWidth = buttons.offsetWidth;
+    //[NEW] get the Right buttons
+    buttonsRight = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS_RIGHT);
+    if (!buttonsRight) {
+      return;
+    }
+
+    // [NEW] added the same functionality to both sides, to make buttons visible when dragged
+    if(e.gesture.direction === "left")
+      buttonsLeft.classList.remove('invisible');
+    else
+      buttonsRight.classList.remove('invisible');
+
+    //[NEW] added buttonRight and buttonLeft properties to currentDrag
+
+    buttonsLeftWidth = buttonsLeft.offsetWidth;
+    buttonsRightWidth = buttonsRight.offsetWidth;
 
     this._currentDrag = {
-      buttons: buttons,
-      buttonsWidth: buttonsWidth,
+      buttonsLeft: buttonsLeft,
+      buttonsRight: buttonsRight,
+      buttonsLeftWidth: buttonsLeftWidth,
+      buttonsRightWidth: buttonsRightWidth,
       content: content,
       startOffsetX: offsetX
     };
@@ -7409,14 +7432,14 @@ ionic.scroll = {
   /**
    * Check if this is the same item that was previously dragged.
    */
-  SlideDrag.prototype.isSameItem = function(op) {
+  SlideDrag.prototype.isSameItem = function (op) {
     if (op._lastDrag && this._currentDrag) {
       return this._currentDrag.content == op._lastDrag.content;
     }
     return false;
   };
 
-  SlideDrag.prototype.clean = function(isInstant) {
+  SlideDrag.prototype.clean = function (isInstant) {
     var lastDrag = this._lastDrag;
 
     if (!lastDrag || !lastDrag.content) return;
@@ -7426,21 +7449,24 @@ ionic.scroll = {
     if (isInstant) {
       lastDrag.content.style[ionic.CSS.TRANSITION] = 'none';
       makeInvisible();
-      ionic.requestAnimationFrame(function() {
+      ionic.requestAnimationFrame(function () {
         lastDrag.content.style[ionic.CSS.TRANSITION] = '';
       });
     } else {
-      ionic.requestAnimationFrame(function() {
+      ionic.requestAnimationFrame(function () {
         setTimeout(makeInvisible, 250);
       });
     }
+
     function makeInvisible() {
-      lastDrag.buttons && lastDrag.buttons.classList.add('invisible');
+      lastDrag.buttonsLeft && lastDrag.buttonsLeft.classList.add('invisible');
+      lastDrag.buttonsRight && lastDrag.buttonsRight.classList.add('invisible');
     }
   };
 
-  SlideDrag.prototype.drag = ionic.animationFrameThrottle(function(e) {
-    var buttonsWidth;
+  SlideDrag.prototype.drag = ionic.animationFrameThrottle(function (e) {
+    var buttonsLeftWidth;
+    var buttonsRightWidth;
 
     // We really aren't dragging
     if (!this._currentDrag) {
@@ -7450,22 +7476,34 @@ ionic.scroll = {
     // Check if we should start dragging. Check if we've dragged past the threshold,
     // or we are starting from the open state.
     if (!this._isDragging &&
-        ((Math.abs(e.gesture.deltaX) > this.dragThresholdX) ||
-        (Math.abs(this._currentDrag.startOffsetX) > 0))) {
+      ((Math.abs(e.gesture.deltaX) > this.dragThresholdX) ||
+      (Math.abs(this._currentDrag.startOffsetX) > 0))) {
       this._isDragging = true;
     }
 
     if (this._isDragging) {
-      buttonsWidth = this._currentDrag.buttonsWidth;
+      buttonsLeftWidth = this._currentDrag.buttonsLeftWidth;
+      buttonsRightWidth = this._currentDrag.buttonsRightWidth;
 
       // Grab the new X point, capping it at zero
-      var newX = Math.min(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
+      //[NEW] added right swipe new position
+      if (this.canSwipe().side === 'right' || (this.canSwipe().side === 'both' && e.gesture.direction === 'left'))
+        var newX = Math.min(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
+      else if (this.canSwipe().side === 'left' || (this.canSwipe().side === 'both' && e.gesture.direction === 'right'))
+        var newX = Math.max(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
 
+      var buttonsWidth = 0;
+      if (e.gesture.direction === 'right')
+        buttonsWidth = buttonsRightWidth;
+      else
+        buttonsWidth = buttonsLeftWidth;
       // If the new X position is past the buttons, we need to slow down the drag (rubber band style)
       if (newX < -buttonsWidth) {
         // Calculate the new X position, capped at the top of the buttons
         newX = Math.min(-buttonsWidth, -buttonsWidth + (((e.gesture.deltaX + buttonsWidth) * 0.4)));
       }
+
+
 
       this._currentDrag.content.$$ionicOptionsOpen = newX !== 0;
 
@@ -7474,7 +7512,7 @@ ionic.scroll = {
     }
   });
 
-  SlideDrag.prototype.end = function(e, doneCallback) {
+  SlideDrag.prototype.end = function (e, doneCallback) {
     var self = this;
 
     // There is no drag, just end immediately
@@ -7485,28 +7523,36 @@ ionic.scroll = {
 
     // If we are currently dragging, we want to snap back into place
     // The final resting point X will be the width of the exposed buttons
-    var restingPoint = -self._currentDrag.buttonsWidth;
+    var restingPoint;
+    if (e.gesture.direction === 'left' && (this.canSwipe().side === 'right' || this.canSwipe().side === 'both'))
+      restingPoint = -self._currentDrag.buttonsLeftWidth;
+    if (e.gesture.direction === 'right' && (this.canSwipe().side === 'left' || this.canSwipe().side === 'both'))
+      restingPoint = self._currentDrag.buttonsRightWidth;
 
     // Check if the drag didn't clear the buttons mid-point
     // and we aren't moving fast enough to swipe open
-    if (e.gesture.deltaX > -(self._currentDrag.buttonsWidth / 2)) {
+    var buttonsWidth = 0;
+    if (e.gesture.direction === 'right')
+      buttonsWidth = self._currentDrag.buttonsRightWidth;
+    else
+      buttonsWidth = self._currentDrag.buttonsLeftWidth;
+    if (e.gesture.deltaX > -(buttonsWidth / 2)) {
 
-      // If we are going left but too slow, or going right, go back to resting
-      if (e.gesture.direction == "left" && Math.abs(e.gesture.velocityX) < 0.3) {
-        restingPoint = 0;
-
-      } else if (e.gesture.direction == "right") {
+      // If we are going left or right but too slow, or going right, go back to resting
+      if ((e.gesture.direction == "left" || e.gesture.direction == "right")  && Math.abs(e.gesture.velocityX) < 0.3) {
         restingPoint = 0;
       }
 
     }
 
-    ionic.requestAnimationFrame(function() {
+    ionic.requestAnimationFrame(function () {
       if (restingPoint === 0) {
         self._currentDrag.content.style[ionic.CSS.TRANSFORM] = '';
-        var buttons = self._currentDrag.buttons;
-        setTimeout(function() {
-          buttons && buttons.classList.add('invisible');
+        var buttonsLeft = self._currentDrag.buttonsLeft;
+        var buttonsRight = self._currentDrag.buttonsRight;
+        setTimeout(function () {
+          buttonsLeft && buttonsLeft.classList.add('invisible');
+          buttonsRight && buttonsRight.classList.add('invisible');
         }, 250);
       } else {
         self._currentDrag.content.style[ionic.CSS.TRANSFORM] = 'translate3d(' + restingPoint + 'px,0,0)';
@@ -45859,7 +45905,7 @@ angular.module('ui.router.state')
  * Copyright 2014 Drifty Co.
  * http://drifty.com/
  *
- * Ionic, v1.1.0
+ * Ionic, v1.1.1
  * A powerful HTML5 mobile app framework.
  * http://ionicframework.com/
  *
@@ -45871,7 +45917,7 @@ angular.module('ui.router.state')
 
 (function() {
 /* eslint no-unused-vars:0 */
-var IonicModule = angular.module('ionic', ['ngAnimate', 'ngSanitize', 'ui.router']),
+var IonicModule = angular.module('ionic', ['ngAnimate', 'ngSanitize', 'ui.router', 'ngIOS9UIWebViewPatch']),
   extend = angular.extend,
   forEach = angular.forEach,
   isDefined = angular.isDefined,
@@ -46745,7 +46791,7 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
         // create an element from the viewLocals template
         ele = $ionicViewSwitcher.createViewEle(viewLocals);
         if (this.isAbstractEle(ele, viewLocals)) {
-          void 0;
+          console.log('VIEW', 'abstractView', DIRECTION_NONE, viewHistory.currentView);
           return {
             action: 'abstractView',
             direction: DIRECTION_NONE,
@@ -46866,7 +46912,7 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
         }
       }
 
-      void 0;
+      console.log('VIEW', action, direction, viewHistory.currentView);
 
       hist.cursor = viewHistory.currentView.index;
 
@@ -47962,7 +48008,7 @@ IonicModule
 // http://blogs.msdn.com/b/msdn_answers/archive/2015/02/10/
 // running-cordova-apps-on-windows-and-windows-phone-8-1-using-ionic-angularjs-and-other-frameworks.aspx
 .config(['$compileProvider', function($compileProvider) {
-  $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|tel|ftp|mailto|file|ghttps?|ms-appx|x-wmapp0):/);
+  $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|sms|tel|geo|ftp|mailto|file|ghttps?|ms-appx|x-wmapp0):/);
   $compileProvider.imgSrcSanitizationWhitelist(/^\s*(https?|ftp|file|content|blob|ms-appx|x-wmapp0):|data:image\//);
 }]);
 
@@ -48387,6 +48433,7 @@ function($rootScope, $ionicBody, $compile, $timeout, $ionicPlatform, $ionicTempl
         self.scope.$parent && self.scope.$parent.$broadcast(self.viewType + '.shown', self);
         self.el.classList.add('active');
         self.scope.$broadcast('$ionicHeader.align');
+        self.scope.$broadcast('$ionicFooter.align');
       }, 20);
 
       return $timeout(function() {
@@ -49448,6 +49495,8 @@ function($ionicTemplateLoader, $ionicBackdrop, $q, $timeout, $rootScope, $ionicB
           popupStack.splice(index, 1);
         }
 
+        popup.remove();
+
         if (popupStack.length > 0) {
           popupStack[popupStack.length - 1].show();
         } else {
@@ -49463,7 +49512,6 @@ function($ionicTemplateLoader, $ionicBackdrop, $q, $timeout, $rootScope, $ionicB
           ($ionicPopup._backButtonActionDone || noop)();
         }
 
-        popup.remove();
 
         return result;
       });
@@ -49764,7 +49812,7 @@ IonicModule
    * @name $ionicScrollDelegate#freezeScroll
    * @description Does not allow this scroll view to scroll either x or y.
    * @param {boolean=} shouldFreeze Should this scroll view be prevented from scrolling or not.
-   * @returns {object} If the scroll view is being prevented from scrolling or not.
+   * @returns {boolean} If the scroll view is being prevented from scrolling or not.
    */
   'freezeScroll',
   /**
@@ -50809,6 +50857,82 @@ function($timeout, $document, $q, $ionicClickBlock, $ionicConfig, $ionicNavBarDe
 }]);
 
 /**
+ * ==================  angular-ios9-uiwebview.patch.js v1.1.1 ==================
+ *
+ * This patch works around iOS9 UIWebView regression that causes infinite digest
+ * errors in Angular.
+ *
+ * The patch can be applied to Angular 1.2.0 – 1.4.5. Newer versions of Angular
+ * have the workaround baked in.
+ *
+ * To apply this patch load/bundle this file with your application and add a
+ * dependency on the "ngIOS9UIWebViewPatch" module to your main app module.
+ *
+ * For example:
+ *
+ * ```
+ * angular.module('myApp', ['ngRoute'])`
+ * ```
+ *
+ * becomes
+ *
+ * ```
+ * angular.module('myApp', ['ngRoute', 'ngIOS9UIWebViewPatch'])
+ * ```
+ *
+ *
+ * More info:
+ * - https://openradar.appspot.com/22186109
+ * - https://github.com/angular/angular.js/issues/12241
+ * - https://github.com/driftyco/ionic/issues/4082
+ *
+ *
+ * @license AngularJS
+ * (c) 2010-2015 Google, Inc. http://angularjs.org
+ * License: MIT
+ */
+
+angular.module('ngIOS9UIWebViewPatch', ['ng']).config(['$provide', function($provide) {
+  'use strict';
+
+  $provide.decorator('$browser', ['$delegate', '$window', function($delegate, $window) {
+
+    if (isIOS9UIWebView($window.navigator.userAgent)) {
+      return applyIOS9Shim($delegate);
+    }
+
+    return $delegate;
+
+    function isIOS9UIWebView(userAgent) {
+      return /(iPhone|iPad|iPod).* OS 9_\d/.test(userAgent) && !/Version\/9\./.test(userAgent);
+    }
+
+    function applyIOS9Shim(browser) {
+      var pendingLocationUrl = null;
+      var originalUrlFn = browser.url;
+
+      browser.url = function() {
+        if (arguments.length) {
+          pendingLocationUrl = arguments[0];
+          return originalUrlFn.apply(browser, arguments);
+        }
+
+        return pendingLocationUrl || originalUrlFn.apply(browser, arguments);
+      };
+
+      window.addEventListener('popstate', clearPendingLocationUrl, false);
+      window.addEventListener('hashchange', clearPendingLocationUrl, false);
+
+      function clearPendingLocationUrl() {
+        pendingLocationUrl = null;
+      }
+
+      return browser;
+    }
+  }]);
+}]);
+
+/**
  * @private
  * Parts of Ionic requires that $scope data is attached to the element.
  * We do not want to disable adding $scope data to the $element when
@@ -51436,7 +51560,11 @@ IonicModule.service('$ionicListDelegate', ionic.DelegateService([
   '$ionicHistory',
 function($scope, $attrs, $ionicListDelegate, $ionicHistory) {
   var self = this;
-  var isSwipeable = true;
+  //[NEW] object with can-swipe attr and swipe-direction side attr, default direction is left
+  var swipe = {
+    isSwipeable: true,
+    side: 'left'
+  };
   var isReorderShown = false;
   var isDeleteShown = false;
 
@@ -51461,11 +51589,13 @@ function($scope, $attrs, $ionicListDelegate, $ionicHistory) {
     return isDeleteShown;
   };
 
-  self.canSwipeItems = function(can) {
+  //[NEW] get swipe direction attribute and store it in a variable to access in other function
+  self.canSwipeItems = function (can) {
     if (arguments.length) {
-      isSwipeable = !!can;
+      swipe.isSwipeable = !!can;
+      swipe.side = $attrs.swipeSide;
     }
-    return isSwipeable;
+    return swipe;
   };
 
   self.closeOptionButtons = function() {
@@ -52253,6 +52383,9 @@ function($scope, $element, $attrs, $compile, $controller, $ionicNavBarDelegate, 
     if (viewLocals && viewLocals.$$controller) {
       viewLocals.$scope = viewScope;
       var controller = $controller(viewLocals.$$controller, viewLocals);
+      if (viewLocals.$$controllerAs) {
+        viewScope[viewLocals.$$controllerAs] = controller;
+      }
       $element.children().data('$ngControllerController', controller);
     }
 
@@ -54315,7 +54448,7 @@ IonicModule
  *   <ion-scroll direction="x" class="available-scroller">
  *     <div class="photo" collection-repeat="photo in main.photos"
  *        item-height="250" item-width="photo.width + 30">
- *        <img ng-src="{{photo.src}}">
+ *        <img ng-src="{% raw %}{{photo.src}}{% endraw %}">
  *     </div>
  *   </ion-scroll>
  * </ion-content>
@@ -55981,6 +56114,12 @@ function headerFooterBarDirective(isHeader) {
             $scope.$watch('$hasTabs', function(val) {
               $element.toggleClass('has-tabs', !!val);
             });
+            ctrl.align();
+            $scope.$on('$ionicFooter.align', function() {
+              ionic.requestAnimationFrame(function() {
+                ctrl.align();
+              });
+            });
           }
         }
       }
@@ -56294,8 +56433,10 @@ IonicModule
   };
 });
 
+// [NEW] added second div with class item-options-left for the left buttons
 var ITEM_TPL_OPTION_BUTTONS =
   '<div class="item-options invisible">' +
+  '</div>' + '<div class="item-options-left invisible">' +
   '</div>';
 /**
 * @ngdoc directive
@@ -56339,9 +56480,15 @@ IonicModule.directive('ionOptionButton', [function() {
           itemCtrl.optionsContainer = jqLite(ITEM_TPL_OPTION_BUTTONS);
           itemCtrl.$element.append(itemCtrl.optionsContainer);
         }
-        itemCtrl.optionsContainer.append($element);
 
-        itemCtrl.$element.addClass('item-right-editable');
+        //[NEW] if it as an attribute side = 'left' put the button in the left container
+        if ($attr.side === 'left') {
+          angular.element(itemCtrl.optionsContainer[1]).append($element);
+          itemCtrl.$element.addClass('item-left-editable');
+        } else{
+          angular.element(itemCtrl.optionsContainer[0]).append($element);
+          itemCtrl.$element.addClass('item-right-editable');
+        }
 
         //Don't bubble click up to main .item
         $element.on('click', stopPropagation);
@@ -57623,13 +57770,16 @@ IonicModule
     template:
       '<label class="item item-radio">' +
         '<input type="radio" name="radio-group">' +
-        '<div class="item-content disable-pointer-events" ng-transclude></div>' +
-        '<i class="radio-icon disable-pointer-events icon ion-checkmark"></i>' +
+        '<div class="radio-content">' +
+          '<div class="item-content disable-pointer-events" ng-transclude></div>' +
+          '<i class="radio-icon disable-pointer-events icon ion-checkmark"></i>' +
+        '</div>' +
       '</label>',
 
     compile: function(element, attr) {
       if (attr.icon) {
-        element.children().eq(2).removeClass('ion-checkmark').addClass(attr.icon);
+        var iconElm = element.find('i');
+        iconElm.removeClass('ion-checkmark').addClass(attr.icon);
       }
 
       var input = element.find('input');
@@ -58409,7 +58559,7 @@ function($timeout, $compile, $ionicSlideBoxDelegate, $ionicHistory, $ionicScroll
       };
 
       this.onPagerClick = function(index) {
-        void 0;
+        console.log('pagerClick', index);
         $scope.pagerClick({index: index});
       };
 
