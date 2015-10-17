@@ -79,7 +79,11 @@ IonicModule.service('$ionicListDelegate', ionic.DelegateService([
   '$ionicHistory',
 function($scope, $attrs, $ionicListDelegate, $ionicHistory) {
   var self = this;
-  var isSwipeable = true;
+  //[NEW] object with can-swipe attr and swipe-direction side attr, default direction is left
+  var swipe = {
+    isSwipeable: true,
+    side: 'left'
+  };
   var isReorderShown = false;
   var isDeleteShown = false;
 
@@ -104,11 +108,13 @@ function($scope, $attrs, $ionicListDelegate, $ionicHistory) {
     return isDeleteShown;
   };
 
-  self.canSwipeItems = function(can) {
+  //[NEW] get swipe direction attribute and store it in a variable to access in other function
+  self.canSwipeItems = function (can) {
     if (arguments.length) {
-      isSwipeable = !!can;
+      swipe.isSwipeable = !!can;
+      swipe.side = $attrs.swipeSide;
     }
-    return isSwipeable;
+    return swipe;
   };
 
   self.closeOptionButtons = function() {

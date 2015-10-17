@@ -1,5 +1,7 @@
+// [NEW] added second div with class item-options-left for the left buttons
 var ITEM_TPL_OPTION_BUTTONS =
   '<div class="item-options invisible">' +
+  '</div>' + '<div class="item-options-left invisible">' +
   '</div>';
 /**
 * @ngdoc directive
@@ -43,9 +45,15 @@ IonicModule.directive('ionOptionButton', [function() {
           itemCtrl.optionsContainer = jqLite(ITEM_TPL_OPTION_BUTTONS);
           itemCtrl.$element.append(itemCtrl.optionsContainer);
         }
-        itemCtrl.optionsContainer.append($element);
 
-        itemCtrl.$element.addClass('item-right-editable');
+        //[NEW] if it as an attribute side = 'left' put the button in the left container
+        if ($attr.side === 'left') {
+          angular.element(itemCtrl.optionsContainer[1]).append($element);
+          itemCtrl.$element.addClass('item-left-editable');
+        } else{
+          angular.element(itemCtrl.optionsContainer[0]).append($element);
+          itemCtrl.$element.addClass('item-right-editable');
+        }
 
         //Don't bubble click up to main .item
         $element.on('click', stopPropagation);
