@@ -54,7 +54,7 @@
     content.classList.remove(ITEM_SLIDING_CLASS);
 
     // Grab the starting X point for the item (for example, so we can tell whether it is open or closed to start)
-    offsetX = parseFloat(content.style[ionic.CSS.TRANSFORM].replace('translate3d(', '').split(',')[0]) || 0;
+    offsetX = parseFloat(content.style['left']) || 0;
 
     // Grab the buttons
     buttonsRight = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS);
@@ -85,16 +85,23 @@
      *
      */
 
-//    var actingOnRight = e.gesture.direction === "left" && buttonsLeft.classList.contains("invisible")
-//                      || e.gesture.direction === "right" && !buttonsRight.classList.contains("invisible");
-
     var actingOnRight = e.gesture.direction === "left" && offsetX <= 0
                       || e.gesture.direction === "right" && offsetX < 0;
 
-    if(actingOnRight)
-      buttonsRight.classList.remove('invisible');
-    else
-      buttonsLeft.classList.remove('invisible');
+
+    var lastItem;
+    if(actingOnRight) {
+      lastItem = buttonsRight.firstChild;
+    } else {
+      lastItem = buttonsLeft.lastChild;
+    }
+
+    // Get background color of most exterior option of current options
+    var color = ionic.DomUtil.getStyle(lastItem,'background-color');
+    // Set it as background color of content
+    if(color){
+      content.parentElement.style.backgroundColor = color;
+    }
 
     buttonsLeftWidth = buttonsLeft.offsetWidth;
     buttonsRightWidth = buttonsRight.offsetWidth;
@@ -126,22 +133,12 @@
     if (!lastDrag || !lastDrag.content) return;
 
     lastDrag.content.style[ionic.CSS.TRANSITION] = '';
-    lastDrag.content.style[ionic.CSS.TRANSFORM] = '';
+    lastDrag.content.style['left'] = '';
     if (isInstant) {
       lastDrag.content.style[ionic.CSS.TRANSITION] = 'none';
-      makeInvisible();
       ionic.requestAnimationFrame(function () {
         lastDrag.content.style[ionic.CSS.TRANSITION] = '';
       });
-    } else {
-      ionic.requestAnimationFrame(function () {
-        setTimeout(makeInvisible, 250);
-      });
-    }
-
-    function makeInvisible() {
-      lastDrag.buttonsLeft && lastDrag.buttonsLeft.classList.add('invisible');
-      lastDrag.buttonsRight && lastDrag.buttonsRight.classList.add('invisible');
     }
   };
 
@@ -190,7 +187,7 @@
 
       this._currentDrag.content.$$ionicOptionsOpen = newX !== 0;
 
-      this._currentDrag.content.style[ionic.CSS.TRANSFORM] = 'translate3d(' + newX + 'px, 0, 0)';
+      this._currentDrag.content.style['left'] = newX + 'px';
       this._currentDrag.content.style[ionic.CSS.TRANSITION] = 'none';
     }
   });
@@ -241,19 +238,8 @@
     }
 
     ionic.requestAnimationFrame(function () {
-      if (restingPoint === 0) {
-        self._currentDrag.content.style[ionic.CSS.TRANSFORM] = '';
-        var buttonsLeft = self._currentDrag.buttonsLeft;
-        var buttonsRight = self._currentDrag.buttonsRight;
-        setTimeout(function () {
-          buttonsLeft && buttonsLeft.classList.add('invisible');
-          buttonsRight && buttonsRight.classList.add('invisible');
-        }, 250);
-      } else {
-        self._currentDrag.content.style[ionic.CSS.TRANSFORM] = 'translate3d(' + restingPoint + 'px,0,0)';
-      }
+      self._currentDrag.content.style['left'] = restingPoint + 'px';
       self._currentDrag.content.style[ionic.CSS.TRANSITION] = '';
-
 
       // Kill the current drag
       if (!self._lastDrag) {

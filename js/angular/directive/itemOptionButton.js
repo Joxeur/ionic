@@ -1,7 +1,7 @@
 // [NEW] added second div with class item-options-left for the left buttons
 var ITEM_TPL_OPTION_BUTTONS =
-  '<div class="item-options invisible">' +
-  '</div>' + '<div class="item-options-left invisible">' +
+  '<div class="item-options">' +
+  '</div>' + '<div class="item-options-left">' +
   '</div>';
 /**
 * @ngdoc directive
