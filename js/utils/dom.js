@@ -44,6 +44,8 @@
      * Cross browser get computed style method
      */
     getStyle: function(el, cssprop) {
+      if(!el) return undefined;
+
       if (el.currentStyle) { //IE
         return el.currentStyle[cssprop];
       } else if (getComputedStyle) {

@@ -91,8 +91,16 @@
 
     var lastItem;
     if(actingOnRight) {
+      if(this.canSwipe().side === 'left'){
+        return;
+      }
+
       lastItem = buttonsRight.firstChild;
     } else {
+      if(this.canSwipe().side === 'right'){
+        return;
+      }
+
       lastItem = buttonsLeft.lastChild;
     }
 
