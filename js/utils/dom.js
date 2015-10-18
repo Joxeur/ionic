@@ -40,6 +40,18 @@
   * @module ionic
   */
   ionic.DomUtil = {
+    /**
+     * Cross browser get computed style method
+     */
+    getStyle: function(el, cssprop) {
+      if (el.currentStyle) { //IE
+        return el.currentStyle[cssprop];
+      } else if (getComputedStyle) {
+        return getComputedStyle(el)[cssprop];
+      }
+      // finally try and get inline style
+      return el.style[cssprop];
+    },
     //Call with proper context
     /**
      * @ngdoc method

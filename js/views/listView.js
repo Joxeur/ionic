@@ -54,7 +54,7 @@
     content.classList.remove(ITEM_SLIDING_CLASS);
 
     // Grab the starting X point for the item (for example, so we can tell whether it is open or closed to start)
-    offsetX = parseFloat(content.style[ionic.CSS.TRANSFORM].replace('translate3d(', '').split(',')[0]) || 0;
+    offsetX = parseFloat(content.style['left']) || 0;
 
     // Grab the buttons
     buttonsRight = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS);
@@ -91,10 +91,21 @@
     var actingOnRight = e.gesture.direction === "left" && offsetX <= 0
                       || e.gesture.direction === "right" && offsetX < 0;
 
-    if(actingOnRight)
+    var lastItem;
+    if(actingOnRight) {
       buttonsRight.classList.remove('invisible');
-    else
+      lastItem = buttonsRight.lastChild;
+    } else {
       buttonsLeft.classList.remove('invisible');
+      lastItem = buttonsLeft.firstChild;
+    }
+
+    // Get background color of most exterior option of current options
+    var color = ionic.DomUtil.getStyle(lastItem,'background-color');
+    // Set it as background color of content
+    if(color){
+      content.parentElement.style.backgroundColor = color;
+    }
 
     buttonsLeftWidth = buttonsLeft.offsetWidth;
     buttonsRightWidth = buttonsRight.offsetWidth;
@@ -126,7 +137,7 @@
     if (!lastDrag || !lastDrag.content) return;
 
     lastDrag.content.style[ionic.CSS.TRANSITION] = '';
-    lastDrag.content.style[ionic.CSS.TRANSFORM] = '';
+    lastDrag.content.style['left'] = '0';
     if (isInstant) {
       lastDrag.content.style[ionic.CSS.TRANSITION] = 'none';
       makeInvisible();
@@ -178,10 +189,10 @@
           // Calculate the new X position, capped at the top of the buttons
           newX = Math.min(-buttonsRightWidth, -buttonsRightWidth + (((e.gesture.deltaX + buttonsRightWidth) * 0.4)));
 
-          buttonRightX = newX + buttonsRightWidth;
+          buttonRightX = newX + buttonsRightWidth - 1;
         }
 
-        this._currentDrag.buttonsRight.style[ionic.CSS.TRANSFORM] = 'translate3d(' + buttonRightX + 'px, 0, 0)';
+        this._currentDrag.buttonsRight.style['right'] = -buttonRightX + 'px';
         this._currentDrag.buttonsRight.style[ionic.CSS.TRANSITION] = 'none';
       } else {
         var buttonLeftX = 0;
@@ -194,16 +205,16 @@
           // Calculate the new X position, capped at the top of the buttons
           newX = Math.max(buttonsLeftWidth, buttonsLeftWidth + (((e.gesture.deltaX - buttonsLeftWidth) * 0.4)));
 
-          buttonLeftX = newX - buttonsLeftWidth;
+          buttonLeftX = newX - buttonsLeftWidth + 1;
         }
 
-        this._currentDrag.buttonsLeft.style[ionic.CSS.TRANSFORM] = 'translate3d(' + buttonLeftX + 'px, 0, 0)';
+        this._currentDrag.buttonsLeft.style['left'] = buttonLeftX + 'px';
         this._currentDrag.buttonsLeft.style[ionic.CSS.TRANSITION] = 'none';
       }
 
       this._currentDrag.content.$$ionicOptionsOpen = newX !== 0;
 
-      this._currentDrag.content.style[ionic.CSS.TRANSFORM] = 'translate3d(' + newX + 'px, 0, 0)';
+      this._currentDrag.content.style['left'] = newX + 'px';
       this._currentDrag.content.style[ionic.CSS.TRANSITION] = 'none';
     }
   });
@@ -255,7 +266,7 @@
 
     ionic.requestAnimationFrame(function () {
       if (restingPoint === 0) {
-        self._currentDrag.content.style[ionic.CSS.TRANSFORM] = '';
+        self._currentDrag.content.style['left'] = '0';
         var buttonsLeft = self._currentDrag.buttonsLeft;
         var buttonsRight = self._currentDrag.buttonsRight;
         setTimeout(function () {
@@ -263,17 +274,15 @@
           buttonsRight && buttonsRight.classList.add('invisible');
         }, 250);
       } else {
-        self._currentDrag.content.style[ionic.CSS.TRANSFORM] = 'translate3d(' + restingPoint + 'px,0,0)';
+        self._currentDrag.content.style['left'] = restingPoint + 'px';
       }
       self._currentDrag.content.style[ionic.CSS.TRANSITION] = '';
 
-      if(self._currentDrag.actingOnRight){
-        self._currentDrag.buttonsRight.style[ionic.CSS.TRANSFORM] = '';
-        self._currentDrag.buttonsRight.style[ionic.CSS.TRANSITION] = '';
-      } else {
-        self._currentDrag.buttonsLeft.style[ionic.CSS.TRANSFORM] = '';
-        self._currentDrag.buttonsLeft.style[ionic.CSS.TRANSITION] = '';
-      }
+      // Reset buttons
+      self._currentDrag.buttonsRight.style['right'] = '';
+      self._currentDrag.buttonsRight.style[ionic.CSS.TRANSITION] = '';
+      self._currentDrag.buttonsLeft.style['left'] = '';
+      self._currentDrag.buttonsLeft.style[ionic.CSS.TRANSITION] = '';
 
       // Kill the current drag
       if (!self._lastDrag) {

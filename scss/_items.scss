@@ -631,6 +631,8 @@ button.item.item-button-right {
   -webkit-transition-property: -webkit-transform;
      -moz-transition-property: -moz-transform;
           transition-property: transform;
+
+  @include transition( left $item-edit-transition-duration, right $item-edit-transition-duration );
 }
 
 .list-left-editing .item-left-editable .item-content,
