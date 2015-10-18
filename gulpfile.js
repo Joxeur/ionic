@@ -93,7 +93,7 @@ function makeChangelog(options) {
   var version = options.version || pkg.version;
   var deferred = q.defer();
   changelog({
-    repository: 'https://github.com/driftyco/ionic',
+    repository: 'https://github.com/Joxeur/ionic',
     version: version,
     subtitle: subtitle,
     file: file,
@@ -270,8 +270,9 @@ gulp.task('release-github', function(done) {
     version: '3.0.0'
   });
   github.authenticate({
-    type: 'oauth',
-    token: process.env.GH_TOKEN
+      type: "basic",
+      username: "jonas.lauber@gmail.com",
+      password: "flocon36"
   });
   makeChangelog({
     standalone: true
@@ -279,10 +280,11 @@ gulp.task('release-github', function(done) {
   .then(function(log) {
     var version = 'v' + pkg.version;
     github.releases.createRelease({
-      owner: 'driftyco',
+      owner: 'Joxeur',
       repo: 'ionic',
       tag_name: version,
       name: version + ' "' + pkg.codename + '"',
+      prerelease: true,
       body: log
     }, done);
   })

@@ -622,7 +622,9 @@ button.item.item-button-right {
 // -------------------------------
 
 .item-left-editable .item-content,
-.item-right-editable .item-content {
+.item-right-editable .item-content,
+.item-left-editable .item-options-left,
+.item-right-editable .item-options {
   // setup standard transition settings
   @include transition-duration( $item-edit-transition-duration );
   @include transition-timing-function( $item-edit-transition-function );

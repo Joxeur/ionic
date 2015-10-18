@@ -6413,7 +6413,9 @@ button.item.item-button-right {
   font-size: 14px; }
 
 .item-left-editable .item-content,
-.item-right-editable .item-content {
+.item-right-editable .item-content,
+.item-left-editable .item-options-left,
+.item-right-editable .item-options {
   -webkit-transition-duration: 250ms;
   transition-duration: 250ms;
   -webkit-transition-timing-function: ease-in-out;

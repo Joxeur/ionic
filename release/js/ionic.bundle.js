@@ -7508,6 +7508,8 @@ ionic.scroll = {
 
       var newX;
       if(this._currentDrag.actingOnRight){
+        var buttonRightX = 0;
+
         // Grab the new X point, capping it at zero
         newX = Math.min(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
 
@@ -7515,8 +7517,15 @@ ionic.scroll = {
         if (newX < -buttonsRightWidth) {
           // Calculate the new X position, capped at the top of the buttons
           newX = Math.min(-buttonsRightWidth, -buttonsRightWidth + (((e.gesture.deltaX + buttonsRightWidth) * 0.4)));
+
+          buttonRightX = newX + buttonsRightWidth;
         }
+
+        this._currentDrag.buttonsRight.style[ionic.CSS.TRANSFORM] = 'translate3d(' + buttonRightX + 'px, 0, 0)';
+        this._currentDrag.buttonsRight.style[ionic.CSS.TRANSITION] = 'none';
       } else {
+        var buttonLeftX = 0;
+
         // Grab the new X point, capping it at zero
         newX = Math.max(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
 
@@ -7524,9 +7533,13 @@ ionic.scroll = {
         if (newX > buttonsLeftWidth) {
           // Calculate the new X position, capped at the top of the buttons
           newX = Math.max(buttonsLeftWidth, buttonsLeftWidth + (((e.gesture.deltaX - buttonsLeftWidth) * 0.4)));
-        }
-      }
 
+          buttonLeftX = newX - buttonsLeftWidth;
+        }
+
+        this._currentDrag.buttonsLeft.style[ionic.CSS.TRANSFORM] = 'translate3d(' + buttonLeftX + 'px, 0, 0)';
+        this._currentDrag.buttonsLeft.style[ionic.CSS.TRANSITION] = 'none';
+      }
 
       this._currentDrag.content.$$ionicOptionsOpen = newX !== 0;
 
@@ -7594,6 +7607,13 @@ ionic.scroll = {
       }
       self._currentDrag.content.style[ionic.CSS.TRANSITION] = '';
 
+      if(self._currentDrag.actingOnRight){
+        self._currentDrag.buttonsRight.style[ionic.CSS.TRANSFORM] = '';
+        self._currentDrag.buttonsRight.style[ionic.CSS.TRANSITION] = '';
+      } else {
+        self._currentDrag.buttonsLeft.style[ionic.CSS.TRANSFORM] = '';
+        self._currentDrag.buttonsLeft.style[ionic.CSS.TRANSITION] = '';
+      }
 
       // Kill the current drag
       if (!self._lastDrag) {
@@ -7601,7 +7621,8 @@ ionic.scroll = {
       }
       ionic.extend(self._lastDrag, self._currentDrag);
       if (self._currentDrag) {
-        self._currentDrag.buttons = null;
+        self._currentDrag.buttonsLeft = null;
+        self._currentDrag.buttonsRight = null;
         self._currentDrag.content = null;
       }
       self._currentDrag = null;

@@ -1,10 +1,10 @@
 {
   "name": "ionic-sdk",
   "private": false,
-  "version": "1.1.0",
-  "codename": "xenon-xerus",
+  "version": "1.1.1",
+  "codename": "xenon-xerus-modified",
   "repository": {
-    "url": "git://github.com/driftyco/ionic.git"
+    "url": "git://github.com/Joxeur/ionic.git"
   },
   "devDependencies": {
     "canonical-path": "0.0.2",
