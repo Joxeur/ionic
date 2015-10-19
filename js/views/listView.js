@@ -31,7 +31,7 @@
   SlideDrag.prototype = new DragOp();
 
   SlideDrag.prototype.start = function (e) {
-    var content, buttonsLeft, buttonsRight, offsetX, buttons, buttonsWidth;
+    var content, buttonsLeft, buttonsRight, offsetX, buttons, marginLeft, marginRight;
 
     if (!this.canSwipe().isSwipeable) {
       return;
@@ -55,6 +55,8 @@
 
     // Grab the starting X point for the item (for example, so we can tell whether it is open or closed to start)
     offsetX = parseFloat(content.style['left']) || 0;
+    marginLeft = parseFloat(content.style['margin-left']) || 0;
+    marginRight = parseFloat(content.style['margin-right']) || 0;
 
     // Grab the buttons
     buttonsRight = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS);
@@ -70,7 +72,7 @@
     var actingOnRight = e.gesture.direction === "left" && offsetX <= 0
                       || e.gesture.direction === "right" && offsetX < 0;
 
-    var lastItem, side, closing, directionFactor;
+    var lastItem, closing, directionFactor, margin;
     if(actingOnRight) {
       // If can only swipe left, then we have nothing to do here
       if(this.canSwipe().side === 'left'){
@@ -81,6 +83,7 @@
       buttons = buttonsRight;
       closing = e.gesture.direction === "right";
       directionFactor = -1;
+      margin = marginRight;
     } else {
       // If can only swipe right, then we have nothing to do here
       if(this.canSwipe().side === 'right'){
@@ -91,6 +94,7 @@
       buttons = buttonsLeft;
       closing = e.gesture.direction === "left";
       directionFactor = 1;
+      margin = marginLeft;
     }
 
     // Get background color of most exterior option of current options
@@ -106,7 +110,8 @@
       buttonsWidth: buttons.offsetWidth,
       content: content,
       directionFactor: directionFactor,
-      startOffsetX: offsetX
+      startOffsetX: offsetX,
+      margin: margin
     };
   };
 
@@ -185,7 +190,7 @@
 
     // If we are currently dragging, we want to snap back into place
     // The final resting point X will be the width of the exposed buttons
-    var restingPoint = self._currentDrag.buttonsWidth;
+    var restingPoint = self._currentDrag.buttonsWidth - self._currentDrag.margin;
 
     // If we are closing it, just set restingPoint to 0
     if (self._currentDrag.closing) {
