@@ -31,7 +31,7 @@
   SlideDrag.prototype = new DragOp();
 
   SlideDrag.prototype.start = function (e) {
-    var content, buttonsLeft, buttonsRight, offsetX, buttonsLeftWidth, buttonsRightWidth;
+    var content, buttonsLeft, buttonsRight, offsetX, buttons, buttonsWidth;
 
     if (!this.canSwipe().isSwipeable) {
       return;
@@ -66,42 +66,31 @@
       return;
     }
 
-    /*
-     * Compute if we are acting on right button:
-     *
-     * Based on offset:
-     *
-     * offset = 0 => closed
-     * offset < 0 => opened right
-     * offset > 0 => opened left
-     *
-     * => actingOnRight = direction === "left" && offset <= 0
-     *                    || direction == "right" && offset < 0
-     *
-     * Based on buttons visibility:
-     *
-     * => actingOnRight = direction === "left" && buttonsLeft hasClass invisible
-     *                    || direction == "right" && ! (buttonsRight hasClass invisible)
-     *
-     */
-
+    // Are we acting on right button ?
     var actingOnRight = e.gesture.direction === "left" && offsetX <= 0
                       || e.gesture.direction === "right" && offsetX < 0;
 
-
-    var lastItem;
+    var lastItem, side, closing, directionFactor;
     if(actingOnRight) {
+      // If can only swipe left, then we have nothing to do here
       if(this.canSwipe().side === 'left'){
         return;
       }
 
       lastItem = buttonsRight.firstChild;
+      buttons = buttonsRight;
+      closing = e.gesture.direction === "right";
+      directionFactor = -1;
     } else {
+      // If can only swipe right, then we have nothing to do here
       if(this.canSwipe().side === 'right'){
         return;
       }
 
       lastItem = buttonsLeft.lastChild;
+      buttons = buttonsLeft;
+      closing = e.gesture.direction === "left";
+      directionFactor = 1;
     }
 
     // Get background color of most exterior option of current options
@@ -111,16 +100,12 @@
       content.parentElement.style.backgroundColor = color;
     }
 
-    buttonsLeftWidth = buttonsLeft.offsetWidth;
-    buttonsRightWidth = buttonsRight.offsetWidth;
-
     this._currentDrag = {
-      actingOnRight: actingOnRight,
-      buttonsLeft: buttonsLeft,
-      buttonsRight: buttonsRight,
-      buttonsLeftWidth: buttonsLeftWidth,
-      buttonsRightWidth: buttonsRightWidth,
+      closing: closing,
+      buttons: buttons,
+      buttonsWidth: buttons.offsetWidth,
       content: content,
+      directionFactor: directionFactor,
       startOffsetX: offsetX
     };
   };
@@ -151,51 +136,40 @@
   };
 
   SlideDrag.prototype.drag = ionic.animationFrameThrottle(function (e) {
-    var buttonsLeftWidth;
-    var buttonsRightWidth;
+    var buttonsWidth;
 
     // We really aren't dragging
     if (!this._currentDrag) {
       return;
     }
 
+    var directionFactor = this._currentDrag.directionFactor;
+    var deltaXDirected = directionFactor * e.gesture.deltaX;
+    var startOffsetXDirected = directionFactor * this._currentDrag.startOffsetX;
+
     // Check if we should start dragging. Check if we've dragged past the threshold,
     // or we are starting from the open state.
     if (!this._isDragging &&
       ((Math.abs(e.gesture.deltaX) > this.dragThresholdX) ||
-      (Math.abs(this._currentDrag.startOffsetX) > 0))) {
+      (this._currentDrag.closing))) {
       this._isDragging = true;
     }
 
     if (this._isDragging) {
-      buttonsLeftWidth = this._currentDrag.buttonsLeftWidth;
-      buttonsRightWidth = this._currentDrag.buttonsRightWidth;
+      buttonsWidth = this._currentDrag.buttonsWidth;
 
-      var newX;
-      if(this._currentDrag.actingOnRight){
-        // Grab the new X point, capping it at zero
-        newX = Math.min(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
+      // Grab the new X point
+      var newX = Math.max(0, startOffsetXDirected + deltaXDirected);
 
-        // If the new X position is past the buttons, we need to slow down the drag (rubber band style)
-        if (newX < -buttonsRightWidth) {
-          // Calculate the new X position, capped at the top of the buttons
-          newX = Math.min(-buttonsRightWidth, -buttonsRightWidth + (((e.gesture.deltaX + buttonsRightWidth) * 0.4)));
-        }
-      } else {
-        // Grab the new X point, capping it at zero
-        newX = Math.max(0, this._currentDrag.startOffsetX + e.gesture.deltaX);
-
-        // If the new X position is past the buttons, we need to slow down the drag (rubber band style)
-        if (newX > buttonsLeftWidth) {
-          // Calculate the new X position, capped at the top of the buttons
-          newX = Math.max(buttonsLeftWidth, buttonsLeftWidth + (((e.gesture.deltaX - buttonsLeftWidth) * 0.4)));
-        }
+      // If the new X position is past the buttons, we need to slow down the drag (rubber band style)
+      if (newX > buttonsWidth) {
+        // Calculate the new X position, capped at the top of the buttons
+        newX = Math.max(buttonsWidth, buttonsWidth + ((((deltaXDirected - buttonsWidth) * 0.4))));
       }
-
 
       this._currentDrag.content.$$ionicOptionsOpen = newX !== 0;
 
-      this._currentDrag.content.style['left'] = newX + 'px';
+      this._currentDrag.content.style['left'] = (directionFactor * newX) + 'px';
       this._currentDrag.content.style[ionic.CSS.TRANSITION] = 'none';
     }
   });
@@ -209,44 +183,24 @@
       return;
     }
 
-    if(self._currentDrag.actingOnRight){
-      // If we are currently dragging, we want to snap back into place
-      // The final resting point X will be the width of the exposed buttons
-      var restingPoint = -self._currentDrag.buttonsRightWidth;
+    // If we are currently dragging, we want to snap back into place
+    // The final resting point X will be the width of the exposed buttons
+    var restingPoint = self._currentDrag.buttonsWidth;
 
-      // Check if the drag didn't clear the buttons mid-point
-      // and we aren't moving fast enough to swipe open
-      if (e.gesture.deltaX > -(self._currentDrag.buttonsRightWidth / 2)) {
-
-        // If we are going left but too slow, or going right, go back to resting
-        if (e.gesture.direction == "left" && Math.abs(e.gesture.velocityX) < 0.3) {
-          restingPoint = 0;
-
-        } else if (e.gesture.direction == "right") {
-          restingPoint = 0;
-        }
-      }
-    } else {
-      // If we are currently dragging, we want to snap back into place
-      // The final resting point X will be the width of the exposed buttons
-      var restingPoint = self._currentDrag.buttonsLeftWidth;
-
-      // Check if the drag didn't clear the buttons mid-point
-      // and we aren't moving fast enough to swipe open
-      if (e.gesture.deltaX < (self._currentDrag.buttonsLeftWidth / 2)) {
-
-        // If we are going left but too slow, or going right, go back to resting
-        if (e.gesture.direction == "right" && Math.abs(e.gesture.velocityX) < 0.3) {
-          restingPoint = 0;
-
-        } else if (e.gesture.direction == "left") {
-          restingPoint = 0;
-        }
+    // If we are closing it, just set restingPoint to 0
+    if (self._currentDrag.closing) {
+      restingPoint = 0;
+    }
+    // If we are opening and did not made it mid-point
+    else if (Math.abs(e.gesture.deltaX) < (self._currentDrag.buttonsWidth / 2)) {
+      // And didn't reach a certain velocity, then go back to close state
+      if (Math.abs(e.gesture.velocityX) < 0.3) {
+        restingPoint = 0;
       }
     }
 
     ionic.requestAnimationFrame(function () {
-      self._currentDrag.content.style['left'] = restingPoint + 'px';
+      self._currentDrag.content.style['left'] = (self._currentDrag.directionFactor * restingPoint) + 'px';
       self._currentDrag.content.style[ionic.CSS.TRANSITION] = '';
 
       // Kill the current drag
