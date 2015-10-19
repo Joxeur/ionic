@@ -7378,7 +7378,7 @@ ionic.scroll = {
   SlideDrag.prototype = new DragOp();
 
   SlideDrag.prototype.start = function (e) {
-    var content, buttonsLeft, buttonsRight, offsetX, buttons, marginLeft, marginRight;
+    var content, buttonsLeft, buttonsRight, offsetX, buttons;
 
     if (!this.canSwipe().isSwipeable) {
       return;
@@ -7402,8 +7402,6 @@ ionic.scroll = {
 
     // Grab the starting X point for the item (for example, so we can tell whether it is open or closed to start)
     offsetX = parseFloat(content.style['left']) || 0;
-    marginLeft = parseFloat(content.style['margin-left']) || 0;
-    marginRight = parseFloat(content.style['margin-right']) || 0;
 
     // Grab the buttons
     buttonsRight = content.parentNode.querySelector('.' + ITEM_OPTIONS_CLASS);
@@ -7430,7 +7428,7 @@ ionic.scroll = {
       buttons = buttonsRight;
       closing = e.gesture.direction === "right";
       directionFactor = -1;
-      margin = marginRight;
+      margin = parseFloat(ionic.DomUtil.getStyle(content, 'margin-right')) || 0;
     } else {
       // If can only swipe right, then we have nothing to do here
       if(this.canSwipe().side === 'right'){
@@ -7441,7 +7439,7 @@ ionic.scroll = {
       buttons = buttonsLeft;
       closing = e.gesture.direction === "left";
       directionFactor = 1;
-      margin = marginLeft;
+      margin = parseFloat(ionic.DomUtil.getStyle(content, 'margin-left')) || 0;
     }
 
     // Get background color of most exterior option of current options
