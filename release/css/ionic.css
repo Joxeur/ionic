@@ -3,7 +3,7 @@
  * Copyright 2014 Drifty Co.
  * http://drifty.com/
  *
- * Ionic, v1.1.1
+ * Ionic, v1.1.0
  * A powerful HTML5 mobile app framework.
  * http://ionicframework.com/
  *
@@ -6413,14 +6413,18 @@ button.item.item-button-right {
   font-size: 14px; }
 
 .item-left-editable .item-content,
-.item-right-editable .item-content {
+.item-right-editable .item-content,
+.item-left-editable .item-options-left,
+.item-right-editable .item-options {
   -webkit-transition-duration: 250ms;
   transition-duration: 250ms;
   -webkit-transition-timing-function: ease-in-out;
   transition-timing-function: ease-in-out;
   -webkit-transition-property: -webkit-transform;
   -moz-transition-property: -moz-transform;
-  transition-property: transform; }
+  transition-property: transform;
+  -webkit-transition: left 250ms, right 250ms;
+  transition: left 250ms, right 250ms; }
 
 .list-left-editing .item-left-editable .item-content,
 .item-left-editing.item-left-editable .item-content {

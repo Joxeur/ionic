@@ -2,7 +2,7 @@
  * Copyright 2014 Drifty Co.
  * http://drifty.com/
  *
- * Ionic, v1.1.1
+ * Ionic, v1.1.0
  * A powerful HTML5 mobile app framework.
  * http://ionicframework.com/
  *
@@ -10532,8 +10532,8 @@ IonicModule
 
 // [NEW] added second div with class item-options-left for the left buttons
 var ITEM_TPL_OPTION_BUTTONS =
-  '<div class="item-options invisible">' +
-  '</div>' + '<div class="item-options-left invisible">' +
+  '<div class="item-options">' +
+  '</div>' + '<div class="item-options-left">' +
   '</div>';
 /**
 * @ngdoc directive
