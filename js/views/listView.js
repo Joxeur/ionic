@@ -22,7 +22,7 @@
   };
 
   var SlideDrag = function (opts) {
-    this.dragThresholdX = opts.dragThresholdX || 20;
+    this.dragThresholdX = opts.dragThresholdX || 15;
     this.el = opts.el;
     this.item = opts.item;
     this.canSwipe = opts.canSwipe;
@@ -96,10 +96,10 @@
     }
 
     // Get background color of most exterior option of current options
-    var color = ionic.DomUtil.getStyle(lastItem,'background-color');
+    var bcColor = ionic.DomUtil.getStyle(lastItem,'background-color');
     // Set it as background color of content
-    if(color){
-      content.parentElement.style.backgroundColor = color;
+    if(bcColor){
+      content.parentElement.style.backgroundColor = bcColor;
     }
 
     this._currentDrag = {
@@ -128,6 +128,7 @@
 
     if (!lastDrag || !lastDrag.content) return;
 
+    lastDrag.content.parentElement.style.backgroundColor = '';
     lastDrag.content.style[ionic.CSS.TRANSITION] = '';
     lastDrag.content.style['left'] = '0';
     if (isInstant) {
@@ -210,6 +211,12 @@
     ionic.requestAnimationFrame(function () {
       self._currentDrag.content.style['left'] = (self._currentDrag.directionFactor * restingPoint) + 'px';
       self._currentDrag.content.style[ionic.CSS.TRANSITION] = '';
+
+      var parent = self._currentDrag.content.parentElement;
+      setTimeout(function() {
+        parent.style.backgroundColor = '';
+        parent = null;
+      }, 250);
 
       // Kill the current drag
       if (!self._lastDrag) {
