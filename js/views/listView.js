@@ -22,7 +22,7 @@
   };
 
   var SlideDrag = function (opts) {
-    this.dragThresholdX = opts.dragThresholdX || 10;
+    this.dragThresholdX = opts.dragThresholdX || 20;
     this.el = opts.el;
     this.item = opts.item;
     this.canSwipe = opts.canSwipe;
@@ -129,7 +129,7 @@
     if (!lastDrag || !lastDrag.content) return;
 
     lastDrag.content.style[ionic.CSS.TRANSITION] = '';
-    lastDrag.content.style['left'] = '';
+    lastDrag.content.style['left'] = '0';
     if (isInstant) {
       lastDrag.content.style[ionic.CSS.TRANSITION] = 'none';
       ionic.requestAnimationFrame(function () {
@@ -150,11 +150,13 @@
     var deltaXDirected = directionFactor * e.gesture.deltaX;
     var startOffsetXDirected = directionFactor * this._currentDrag.startOffsetX;
 
+    // Compute threshold
+    var threshold = this._currentDrag.closing ? 0 : this.dragThresholdX;
+
     // Check if we should start dragging. Check if we've dragged past the threshold,
     // or we are starting from the open state.
     if (!this._isDragging &&
-      ((Math.abs(e.gesture.deltaX) > this.dragThresholdX) ||
-      (this._currentDrag.closing))) {
+        Math.abs(e.gesture.deltaX) > threshold) {
       this._isDragging = true;
     }
 
@@ -162,12 +164,15 @@
       buttonsWidth = this._currentDrag.buttonsWidth;
 
       // Grab the new X point
-      var newX = Math.max(0, startOffsetXDirected + deltaXDirected);
+      var newX = Math.max(0, startOffsetXDirected + deltaXDirected - threshold);
 
       // If the new X position is past the buttons, we need to slow down the drag (rubber band style)
       if (newX > buttonsWidth) {
         // Calculate the new X position, capped at the top of the buttons
-        newX = Math.max(buttonsWidth, buttonsWidth + ((((deltaXDirected - buttonsWidth) * 0.4))));
+
+        // y = 70*(1 - e^(-(deltaXDirected - buttonsWidth) / 100))
+
+        newX = Math.max(buttonsWidth, buttonsWidth + ((deltaXDirected - buttonsWidth - threshold) * 0.4));
       }
 
       this._currentDrag.content.$$ionicOptionsOpen = newX !== 0;
